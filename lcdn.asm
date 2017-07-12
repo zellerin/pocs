@@ -13,12 +13,6 @@
 	__config _INTRC_OSC_NOCLKOUT & _WDT_ON & _MCLRE_ON
 
 ;;; Registers
-;;; 0x20 - scratch, used by nibble rotating things
-;;; 0x21 - used by short_wait as a parameter
-;;; 0x22 - unused
-;;; 0x23 - parameter for nibble putting code
-;;; 0x24, 0x25 - reserved for interrupt handling
-
 ;;; PINS
 ;;;    this is for easy putting on prototype board 
 ;;; RC0 to RC3 -> D4-D7 (reversed)
@@ -29,24 +23,30 @@
 	
 	udata_shr
 scratch:
+	;; used by nibble rotating things
 	res .1
 duration:
+	;; used by short_wait as a parameter
 	res .1
-unused: res .1
-nibble:	res .1
+nibble:
+	;; parameter for nibble putting code
+	res .1
+intr_w:	res .1
+intr_status:
+	res .1
 
 	code
 	goto	init
 ;;; interrupt code
-;;; unused
+;;; unused at the moment
 	org 4
-	movwf	0x24
+	movwf	intr_w
 	movf	0x3, w
-	movwf	0x25
-	movf	0x25, w
+	movwf	intr_status
+	movf	intr_status, w
 	movwf	0x3
-	swapf	0x24, f
-	swapf	0x24, w
+	swapf	intr_w, f
+	swapf	intr_w, w
 	retfie
 ;;; complete start
 init:
@@ -68,7 +68,8 @@ main_loop:
 	call init_lcd
 	movlw	LOW(hello)
 	call	print_text_from_prom
-	call	move_to_2nd_row
+	movlw	0xc0 		; set ddram address = 0x40
+	call    send_command	; i.e., move to 2nd row
 	movlw	LOW(row)
 	call	print_text_from_prom
 	call	slow_shift_right
@@ -102,16 +103,16 @@ put_char:
 	bsf	PORTA, 2
 put:
 	;; send a char or command in W to screen in two 4bit parts
-	movwf	0x23
+	movwf	nibble
 	movlw	0x3
 	call	wait_1
 	call	push_high_nibble
 push_high_nibble:
-	;; Input: 0x23 = [ A B ] scratch = [ D (4bit) F E(3 bit) ]
+	;; Input: nibble = [ A B ] scratch = [ D (4bit) F E(3 bit) ]
 	;;   	carry C
 	;; Output:
-	;;    0x23 = [ B C rev E ] scratch = [ rev A D ] W = [ 1 A ]
-	;; Put reversed high nibble of 0x23 to low nibble of W
+	;;    nibble = [ B C rev E ] scratch = [ rev A D ] W = [ 1 A ]
+	;; Put reversed high nibble of 	nibble register to low nibble of W
 	;; through high nibble of scratch
 	;; and push low nibble of 0x23 to its high nibble
 	;; n.b. putting 0x10 to initialize scratch would work too, but
@@ -127,7 +128,7 @@ push_high_nibble:
 rotate_2bit:
 	call rotate_bit
 rotate_bit:
-	rlf	0x23, f
+	rlf	nibble, f
 	rrf	scratch, f
 	return
 
@@ -154,10 +155,6 @@ slow_shift_right:
 send_command:
 	bcf	PORTA, 0x2
 	goto	put
-
-move_to_2nd_row:
-	movlw	0xc0 		; set ddram address = 0x40
-	goto send_command
 
 ;;; 
 print_text_from_prom:
@@ -194,14 +191,13 @@ init_lcd:
 	movlw	0x20		; set 4bit
 	call emit_w_nibble
 	movlw	LOW(initcode)
-	call print_from_prom
-	return
+	goto print_from_prom
 wait_and_reset:
 	call wait_1
 send_reset:
 	movlw	0x30		; set 8bit
 emit_w_nibble:
-	movwf	0x23
+	movwf	nibble
 	goto	push_high_nibble
 DEEPROM	code
 hello:	de	"Hello world\0"
