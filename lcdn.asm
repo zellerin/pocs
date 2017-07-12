@@ -1,6 +1,7 @@
+;;; -*- coding:utf-8; -*-
 ;;; Copyright (C) 2011,2017 by Tomas Zellerin
 ;;;
-;;; Drive LCD with pic16f630
+;;; Drive LCD with microchip pic16f630
 ;;; Digged out from my archives
 ;;; 
 	
@@ -65,10 +66,10 @@ init:
 	movwf	T1CON	 ; ¬ t1sync , tmr1cs, tmr1on
 main_loop:
 	call init_lcd
-	movlw	LOW(ahoj)
+	movlw	LOW(hello)
 	call	print_text_from_prom
 	call	move_to_2nd_row
-	movlw	LOW(mlask)
+	movlw	LOW(row)
 	call	print_text_from_prom
 	call	slow_shift_right
 	call	slow_shift_right
@@ -203,14 +204,14 @@ emit_w_nibble:
 	movwf	0x23
 	goto	push_high_nibble
 DEEPROM	code
-ahoj:	de	"Ahoj Terezko\0"
-mlask:   EQU $
-	de	"Mlask\0"
-initcode: equ $
-	de 0x28, 8, 1, 6, 0xc, 0
-	;; 4bit 2 lines
-	;; display off, no cursor, no blink
-	;; clear
-	;; increment, dont shift display
-	;; display on, no cursor, no blink
+hello:	de	"Hello world\0"
+row:
+	de	"2nd row\0"
+initcode:
+	de 0x28			; 4bit 2 lines
+	de 8			; display off, no cursor, no blink
+	de 1			; clear
+	de 6			; increment, dont shift display
+	de 0xc			; display on, no cursor, no blink
+	de 0
 	end
