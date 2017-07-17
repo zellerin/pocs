@@ -10,22 +10,12 @@
 	radix DEC
 	include "p16f630.inc"
 
-	__config _INTRC_OSC_NOCLKOUT & _WDT_ON & _MCLRE_ON
-
-;;; Registers
-;;; PINS
-;;;    this is for easy putting on prototype board 
-;;; RC0 to RC3 -> D4-D7 (reversed)
-;;; RA2 to RS (we want to set it separately from other wires)
-;;; rc5 rw
-;;; rc4 e
-
 	extern init_lcd, print_text_from_prom, send_command, slow_shift_right, put_reg
 	
 	udata_shr
-intr_w:	res .1
+intr_w:	res 1
 intr_status:
-	res .1
+	res 1
 
 	code
 	org 0
@@ -34,10 +24,10 @@ intr_status:
 ;;; unused at the moment
 	org 4
 	movwf	intr_w
-	movf	0x3, w
+	movf	STATUS, w
 	movwf	intr_status
 	movf	intr_status, w
-	movwf	0x3
+	movwf	STATUS
 	swapf	intr_w, f
 	swapf	intr_w, w
 	retfie
@@ -49,13 +39,13 @@ init:
 	clrf	TMR1L
 	clrf	PORTA
 	clrf	PORTC
-	movlw	0x3b
-	bsf	0x3, 0x5 ;; bank 1
+	bsf	STATUS, RP0	;bank 1
+	movlw	0x3b 	; pin2 is out, rest in
 	movwf	TRISA ^ 0x80
-	clrf	TRISC ^ 0x80
-	movlw	0x7
-	bcf	0x3, 0x5 ;; bank 0
+	clrf	TRISC ^ 0x80	; all out
+	bcf	STATUS, RP0 ;; bank 0
 	;; timer enabled, no prescaler, internal source
+	movlw	0x7
 	movwf	T1CON	 ; ¬ t1sync , tmr1cs, tmr1on
 main_loop:
 	call init_lcd

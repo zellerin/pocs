@@ -74,12 +74,12 @@ put_nibble:
         ;; Convert nibble to ascii and put to the screen
         andlw   0xf
         addlw   0xf6
-        btfsc   0x3, 0
+        btfsc   STATUS, C
         addlw   0x7
         addlw   0x3a
 put_char:
         ;; put a char in W to the screen
-        bsf     PORTA, 2
+        bsf     PORTA, RS
 put:
         ;; send a char or command in W to screen in two 4bit parts
         movwf   nibble
@@ -100,9 +100,9 @@ push_high_nibble:
         call rotate_2bit
         swapf   scratch, w
         andlw   0xf
-        iorlw   0x10            ; enable on
+        iorlw   (1<<ENABLE)
         movwf   PORTC
-        bcf     PORTC, 0x4      ; enable off
+        bcf     PORTC, ENABLE
         return
 rotate_2bit:
         call rotate_bit
@@ -117,7 +117,7 @@ wait_1:
         clrf    duration
         call    short_wait
         addlw   0xff
-        btfsc   0x3, 0x2
+        btfsc   STATUS, Z
         return
         goto    wait_1
 short_wait:
@@ -132,30 +132,30 @@ slow_shift_right:
         call    wait_1
         movlw   0x1c
 send_command:
-        bcf     PORTA, 0x2
+        bcf     PORTA, RS
         goto    put
 
 ;;;
 print_text_from_prom:
-        bsf     PORTA, 0x2
+        bsf     PORTA, RS
 print_from_prom:
         ;; Put bytes from prom until 0 is seen
-        bsf     0x3, 0x5 ;; bank 1
+        bsf     STATUS, RP0 ;; bank 1
         movwf   EEADR
 next_char:
-        bsf     0x3, 0x5 ;; bank 1
+        bsf     STATUS, RP0 ;; bank 1
         bsf     EECON1, 0
         incf    EEADR, f
         movf    EEDAT, w
-        bcf     0x3, 0x5 ;; bank 0
-        btfsc   0x3, 0x2
+        bcf     STATUS, RP0 ;; bank 0
+        btfsc   STATUS, Z
         return
         call    put
         goto    next_char
 
 ;;; Initialization
 init_lcd:
-        clrf    PORTA           ; commands follow
+        bcf     PORTA, RS           ; commands follow
         clrf    PORTC
         movlw   0x14
         call    wait_and_reset
