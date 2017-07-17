@@ -67,6 +67,7 @@ nibble:
 put_reg:
         ;; Put to screen content of a register addressed by W
         movwf FSR
+put_reg_indf
         swapf INDF, W
         call put_nibble
         movf INDF, W

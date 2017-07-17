@@ -2,3 +2,4 @@
 *.fasl
 *.lst
 *.o
+/lcdn.X/nbproject/private/
