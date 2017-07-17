@@ -1,4 +1,4 @@
-;; Fontification for Microchip midrange assembler
+;; tz-pic.el --- Fontification for Microchip midrange assembler
 
 (defvar tz-pic-instruction-words
   (regexp-opt
@@ -19,7 +19,7 @@
   (regexp-opt
    '("PORTA" "PORTC" "TRISA" "TRISC"
      "CMCON" "TMR1H" "TMR1L" "T1CON"
-     "EEADR" "EECON1" "EEDAT")
+     "EEADR" "EECON1" "EEDAT" "FSR" "INDF")
    'words))
 
 (defvar tz-pic-constants
