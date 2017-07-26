@@ -1,0 +1,9 @@
+#+TITLE: Random code
+
+This directory contains some low-maturity code that I want to have
+access to, but does not deserve own repository (maybe yet).
+
+Namely:
+- Pic assembler code for 16f630 to [[lcd.asm][drive LCD]] and some [[lcdn.asm][demo]] around it,
+- Some fontification files, often for Windows
+- Intentionally insecure Hunchentoot web application 
