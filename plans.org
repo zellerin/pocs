@@ -1,0 +1,3 @@
+* dnschef
+- Check DNS setup
+- Test with a fake web site
