@@ -2,24 +2,53 @@
 
 (defvar tz-pic-instruction-words
   (regexp-opt
-   '("movf" "movwf" "movlw" "swapf"
-     "retfie" "clrf" "bsf" "bcf" "goto"
-     "call" "sleep" "incf" "decf" "btfsc"
-     "addlw" "rlf" "rrf" "andlw" "iorlw" "return" "decfsz")
+   '("movwf" "movlw"
+     "clrf" "goto"
+     "call"
+     "addlw" "andlw" "iorlw"
+     "equ" "res"
+     "global" "extern")
+   'words))
+
+(defvar tz-pic-instruction-words-wf
+  (regexp-opt
+   '("movf"  "swapf"
+     "incf" "decf"
+     "subwf"
+     "rlf" "rrf"  "iorlw" "decfsz")
+   'words))
+
+(defvar tz-pic-instruction-noop-words
+  (regexp-opt
+   '( "retfie" "sleep" "return" "retfie" "wdtrst"
+      "udata_shr" "code")
+   'words))
+
+(defvar tz-pic-instruction-bit-words
+  (regexp-opt
+   '("bsf" "bcf" "btfsc" "btfss"
+     "global" "extern")
    'words))
 
 (defvar tz-pic-asm-words
   (regexp-opt
    '("code" "res" "end" "org" "list" "title" "radix DEC"
      "include" "__config" "db" "de" "dw"
-     "udata" "udata_shr")
+     "udata" "udata_shr"
+     "extern" "global" "LOW" "HIGH")
    'words))
 
 (defvar tz-pic-var-words
   (regexp-opt
-   '("PORTA" "PORTC" "TRISA" "TRISC"
+   '("PORTA" "PORTC" "TRISA" "TRISC" "STATUS"
      "CMCON" "TMR1H" "TMR1L" "T1CON"
      "EEADR" "EECON1" "EEDAT" "FSR" "INDF")
+   'words))
+
+(defvar tz-pic-var-bits
+    (regexp-opt
+     '("STATUS, C"
+       "PORTA, RS")
    'words))
 
 (defvar tz-pic-constants
@@ -30,19 +59,56 @@
 
 (defun tz-pic-fontify ()
   (setq font-lock-defaults
-	`((("^\\S +:?\\s *" (0 font-lock-function-name-face))
-	   ("^\\(\\sw+:?\\)?\\s +\\(\\(\\.?\\sw\\|\\s_\\)+\\(\\.\\sw+\\)*\\)"
+	`(((;; No op, just label
+	    "^[^:\n[:space:]]+:?$" (0 font-lock-function-name-face))
+	   ;; no op instruction
+	   ("^\\([^:\n[:space:]]+:?\\)?\\s +[^,\n]+$"
+	    ("^\\sw+" (move-beginning-of-line 1) nil
+	     (0 font-lock-function-name-face))
+	    (,tz-pic-instruction-noop-words (move-beginning-of-line 1) nil
+				 (0 font-lock-keyword-face)))
+	   ;; one op instructions
+	   ("^\\([^:\n[:space:]]+:?\\)?\\s +[^,\n]+\\s +[^,\n]+\\s *$"
 	    ("^\\sw+" (move-beginning-of-line 1) nil
 	     (0 font-lock-function-name-face))
 	    (,tz-pic-instruction-words (move-beginning-of-line 1) nil
-				       (0 font-lock-keyword-face))
-	    (,tz-pic-asm-words (move-beginning-of-line 1) nil
-			       (0 font-lock-builtin-face))
-	    (,tz-pic-var-words nil nil
+				 (0 font-lock-keyword-face))
+	    (,tz-pic-var-words (forward-word -1) nil
 				(0 font-lock-variable-name-face))
-	    (,tz-pic-constants nil nil
-			       (0 font-lock-constant-face))
-	    (",\s *[wf]"
-	     nil nil (0 font-lock-builtin-face)))))))
+	    (,tz-pic-constants (forward-word -1) nil
+			 (0 font-lock-constant-face)))
+	   ;; with direction
+	   ("^\\([^:\n[:space:]]+:?\\)?\\s +\\sw+\\s +[^,\n]+,\\s *[wfWF]$"
+	    ("^\\sw+" (move-beginning-of-line 1) nil
+	     (0 font-lock-function-name-face))
+	    (,tz-pic-instruction-words-wf (move-beginning-of-line 1) nil
+				 (0 font-lock-keyword-face))
+	    (,tz-pic-var-words (forward-word -2) nil
+				(0 font-lock-variable-name-face))
+	    (,tz-pic-constants (forward-word -2) nil
+			 (0 font-lock-constant-face))
+	    ("[wfWF]"
+	     (forward-word -1) nil (0 font-lock-builtin-face))
+	    (,tz-pic-asm-words (move-beginning-of-line 1) nil
+			 (0 font-lock-builtin-face)))
+	   ;; bit ops
+	   ("^\\([^:\n[:space:]]+:?\\)?\\s +\\sw+\\s +[^,\n]+,\\s +[^,\n]+$"
+	    ("^\\sw+" (move-beginning-of-line 1) nil
+	     (0 font-lock-function-name-face))
+	    (,tz-pic-instruction-bit-words
+	     (move-beginning-of-line 1) nil
+	     (0 font-lock-keyword-face))
+	    (,tz-pic-var-bits (forward-word -2) nil
+			 (0 font-lock-variable-name-face))
+	    (,tz-pic-constants (forward-word -1) nil
+			 (0 font-lock-constant-face)))
+	   ("^.*,.*,.*$"
+	    (,tz-pic-constants (move-beginning-of-line 1) nil
+			 (0 font-lock-constant-face))
+	    (,tz-pic-asm-words (move-beginning-of-line 1) nil
+			 (0 font-lock-builtin-face))
+	    (,tz-pic-var-words (move-beginning-of-line 1) nil
+			 (0 font-lock-variable-name-face)))))))
 
-(add-hook 'asm-mode-hook 'tz-pic-fontify)
+(define-derived-mode pic-asm-mode asm-mode "Pic asm"
+  (tz-pic-fontify))
