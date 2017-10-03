@@ -19,9 +19,13 @@
 
 (defvar tz-pic-instruction-noop-words
   (regexp-opt
-   '( "retfie" "sleep" "return" "retfie" "wdtrst"
-      "udata_shr" "code" "end" "title" "include")
+   '( "retfie" "sleep" "return" "retfie" "wdtrst")
    'words))
+
+(defvar tz-pic-vanilla-builtins
+  (regexp-opt
+   '("udata_shr" "code" "end" "title" "include")
+   'words)  )
 
 (defvar tz-pic-instruction-bit-words
   (regexp-opt
@@ -58,42 +62,47 @@
 (defun tz-pic-fontify ()
   (setq font-lock-defaults
 	`(((;; No op, just label
-	    "^[^:\n[:space:]]+:?" (0 font-lock-function-name-face))
+	    "^[^:\n[:space:]]+:?" (0 font-lock-variable-name-face))
 	   ;; no op instruction
-	   (,tz-pic-instruction-noop-words (0 font-lock-keyword-face))
+	   (,tz-pic-instruction-noop-words (0 font-lock-function-name-face))
+	   ;; builtins with no special handling
+	   (,tz-pic-vanilla-builtins (0 font-lock-builtin-face))
 	   ;; one op instructions
-	   (,tz-pic-instruction-words (0 font-lock-keyword-face)
+	   (,tz-pic-instruction-words (0 font-lock-function-name-face)
 	    (,tz-pic-var-words nil nil
-			 (0 font-lock-variable-name-face))
+			 (0 font-lock-constant-face))
+	    (",.*" nil nil (0 font-lock-warning-face))
+	    ("\\<[[:alpha:]_][[:alnum:]_]+\\>" nil nil (0 font-lock-variable-name-face))
 	    (,tz-pic-constants nil nil
 			 (0 font-lock-constant-face))
-	    (",.*" nil nil (0 font-lock-warning-face)))
-	   ("radix" (0 font-lock-keyword-face)
+)
+	   ("radix" (0 font-lock-builtin-face)
 	    (,(regexp-opt '("DEC" "HEX") 'words)
-	     nil nil (0 font-lock-keyword-face)))
-	   ("list" (0 font-lock-keyword-face)
+	     nil nil (0 font-lock-constant-face)))
+	   ("list" (0 font-lock-builtin-face)
 	    ("\\<[pntc]=[[:alnum:]]+" nil nil (0 font-lock-constant-face)))
 	   (,(regexp-opt '("global" "extern" "de" "dw") 'words)
-	    (0 font-lock-keyword-face)
-	    ("\\<[_[:alnum:]]+" nil nil 
+	    (0 font-lock-builtin-face)
+	    ("\\<[_[:alnum:]]+" nil nil
 	     (0 font-lock-variable-name-face)))
-	   (,(regexp-opt '("de" "dw") 'words))
 	   ;; with direction
 	   (,tz-pic-instruction-words-wf
-	    (0 font-lock-keyword-face)
+	    (0 font-lock-function-name-face)
 	    (,(concat tz-pic-var-words ", [WFwf]") nil nil
-				(0 font-lock-variable-name-face))
+				(0 font-lock-constant-face))
 	    (,tz-pic-constants nil nil
 			 (0 font-lock-constant-face))
+	    ("[_[:alpha:]][[:alnum:]_]+" nil nil (0 font-lock-variable-name-face))
 	    (", \\<[wfWF]\\>"
 	     nil nil (0 font-lock-builtin-face)))
 	   ;; bit ops
 	   (,tz-pic-instruction-bit-words
-	    (0 font-lock-keyword-face)
+	    (0 font-lock-function-name-face)
 	    (,tz-pic-var-bits nil nil
-			(0 font-lock-variable-name-face))
+			(0 font-lock-constant-face))
 	    (,(concat tz-pic-var-words ",") nil nil
-			 (0 font-lock-variable-name-face))
+			 (0 font-lock-constant-face))
+	    ("[_[:alpha:]][[:alnum:]_]+" nil nil (0 font-lock-variable-name-face))
 	    (,tz-pic-constants nil nil
 			 (0 font-lock-constant-face)))))))
 
