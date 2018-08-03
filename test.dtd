@@ -1,0 +1,3 @@
+<!ELEMENT Document ANY>
+<!ELEMENT Record ANY>
+<!ELEMENT Id ANY>
